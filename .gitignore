@@ -1,0 +1,2 @@
+plugins/confluentinc-kafka-connect-elasticsearch-15.0.0/*
+plugins/debezium-connector-postgres-2.7.4/*
