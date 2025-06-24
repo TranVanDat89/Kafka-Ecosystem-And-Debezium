@@ -25,14 +25,14 @@ create_connector() {
 
 # Payload Debezium PostgreSQL Source Connector
 DEBEZIUM_PAYLOAD_JSON='{
-  "name": "ecommerce-postgres-cdc",
+  "name": "city-postgres-cdc",
   "config": {
     "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
     "database.hostname": "postgres",
     "database.port": "5432",
     "database.user": "root",
     "database.password": "root123",
-    "database.dbname": "ecommerce_db",
+    "database.dbname": "city_db",
     "database.server.name": "cities_server",
     "plugin.name": "pgoutput",
     "slot.name": "debezium",
@@ -100,8 +100,8 @@ ELASTICSEARCH_PAYLOAD_AVRO='{
   }
 }'
 
-# Tạo từng connector
-create_connector "ecommerce-postgres-cdc" "$DEBEZIUM_PAYLOAD_AVRO"
-create_connector "elasticsearch-sink" "$ELASTICSEARCH_PAYLOAD_AVRO"
+# Tạo từng connector, tạo đầu source
+create_connector "cities-postgres-cdc" "$DEBEZIUM_PAYLOAD_JSON"
+# create_connector "elasticsearch-sink" "$ELASTICSEARCH_PAYLOAD_AVRO"
 
 echo "🎉 Tất cả connectors đã tạo thành công."

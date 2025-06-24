@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: kafka-etl
+  kafka:
+    bootstrap-servers: localhost:29092
+    streams:
+      application-id: cities-etl-app
+      bootstrap-servers: localhost:29092
+      default-key-serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      default-value-serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      properties:
+        processing.guarantee: exactly_once_v2
+        commit.interval.ms: 1000
+        cache.max.bytes.buffering: 10240
+        default.timestamp.extractor: org.apache.kafka.streams.processor.WallclockTimestampExtractor
+        num.stream.threads: 2
+        replication.factor: 1
+        default.deserialization.exception.handler: org.apache.kafka.streams.errors.LogAndContinueExceptionHandler
+        default.production.exception.handler: org.apache.kafka.streams.errors.DefaultProductionExceptionHandler
+    consumer:
+      group-id: cities-etl-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+
+# Kafka Topics Configuration
+kafka:
+  topics:
+    # Input topics (from Debezium CDC)
+    cities-cdc: cities.public.cities
+    # Output topics (processed data)
+    cities-enriched: cities-enriched
+    cities-aggregated: cities-aggregated
+    cities-validated: cities-validated
+    cities-transformed: cities-transformed
+    # Error handling topics
+    cities-dlq: cities-dead-letter-queue
+    cities-retry: cities-retry-topic

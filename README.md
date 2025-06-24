@@ -9,6 +9,7 @@ PostgreSQL (Debezium Source Connector)
 
 ## Upcomming
 - Bài toán xử lý dữ liệu với Kafka Streams
+```bash
 PostgreSQL → Debezium → Kafka → [ETL Processors] → Multiple Sinks
                                       ↓
                             ┌─────────────────────┐
@@ -26,3 +27,4 @@ PostgreSQL → Debezium → Kafka → [ETL Processors] → Multiple Sinks
                     │ - Redis (caching)                   │
                     │ - S3 (data lake)                    │
                     └─────────────────────────────────────┘
+```

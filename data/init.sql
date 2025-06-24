@@ -6,7 +6,9 @@ CREATE TABLE cities (
     region VARCHAR(100),
     population INTEGER,
     area_km2 DECIMAL(10,2),
+    -- Vĩ độ
     latitude DECIMAL(10,6),
+    -- Kinh độ
     longitude DECIMAL(10,6),
     timezone VARCHAR(50),
     is_capital BOOLEAN DEFAULT false,

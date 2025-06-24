@@ -3,15 +3,17 @@ version: '3.7'
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
     ports:
       - "2181:2181"
     networks:
-      - ecommerce-net
+      - city-net
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
     depends_on:
       - zookeeper
     ports:
@@ -34,22 +36,22 @@ services:
       start_period: 30s
     restart: unless-stopped
     networks:
-      - ecommerce-net
+      - city-net
 
-  schema-registry:
-    image: confluentinc/cp-schema-registry:7.5.0
-    hostname: schema-registry
-    container_name: schema-registry
-    ports:
-      - "8081:8081"
-    environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka:9092"
-      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
-    networks:
-      - ecommerce-net
-    depends_on:
-      - kafka
+  # schema-registry:
+  #   image: confluentinc/cp-schema-registry:7.5.0
+  #   hostname: schema-registry
+  #   container_name: schema-registry
+  #   ports:
+  #     - "8081:8081"
+  #   environment:
+  #     SCHEMA_REGISTRY_HOST_NAME: schema-registry
+  #     SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka:9092"
+  #     SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+  #   networks:
+  #     - city-net
+  #   depends_on:
+  #     - kafka
 
   kafka-connect:
     image: confluentinc/cp-kafka-connect:7.5.0
@@ -68,10 +70,10 @@ services:
       - CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR=1
       - CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR=1
       - CONNECT_STATUS_STORAGE_REPLICATION_FACTOR=1
-      - CONNECT_KEY_CONVERTER=io.confluent.connect.avro.AvroConverter
-      - CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL=http://schema-registry:8081
-      - CONNECT_VALUE_CONVERTER=io.confluent.connect.avro.AvroConverter
-      - CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL=http://schema-registry:8081
+      - CONNECT_KEY_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      - CONNECT_VALUE_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      - CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE=false
+      - CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE=false
       - CONNECT_PLUGIN_PATH=/kafka/connect
       - CONNECT_REST_ADVERTISED_HOST_NAME=kafka-connect
     healthcheck:
@@ -84,7 +86,7 @@ services:
       - ./plugins/confluentinc-kafka-connect-elasticsearch-15.0.0:/kafka/connect/confluentinc-kafka-connect-elasticsearch
       - ./plugins/debezium-connector-postgres-2.7.4:/kafka/connect/debezium-debezium-connector-postgresql
     networks:
-      - ecommerce-net
+      - city-net
 
   postgres:
     container_name: postgres-container
@@ -93,13 +95,13 @@ services:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root123
       PGDATA: /var/lib/postgresql/data
-      POSTGRES_DB: ecommerce_db
+      POSTGRES_DB: city_db
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
       - 5432:5432
     networks:
-      - ecommerce-net
+      - city-net
     restart: unless-stopped
     command: [
       "postgres",
@@ -127,7 +129,7 @@ services:
     volumes:
       - es-data-2:/usr/share/elasticsearch/data
     networks:
-      - ecommerce-net
+      - city-net
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.14.0
@@ -139,7 +141,7 @@ services:
     depends_on:
       - elasticsearch
     networks:
-      - ecommerce-net
+      - city-net
   
   kafka-ui:
     container_name: kafka-ui
@@ -155,10 +157,10 @@ services:
       - kafka
     restart: unless-stopped
     networks:
-      - ecommerce-net
+      - city-net
 
 networks:
-  ecommerce-net:
+  city-net:
     driver: bridge  # Explicitly specify driver
 
 volumes:
