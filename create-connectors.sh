@@ -69,8 +69,15 @@ ELASTICSEARCH_PAYLOAD_JSON='{
     "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
     "topics": "cities.public.cities",
     "connection.url": "http://elasticsearch:9200",
-    "key.ignore": true,
-    "schema.ignore": true
+    "type.name": "_doc",
+    "key.ignore": "false",
+    "schema.ignore": true,
+
+    "transforms": "unwrap,extractKeyField",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": "false",
+    "transforms.extractKeyField.type": "org.apache.kafka.connect.transforms.ExtractField$Key",
+    "transforms.extractKeyField.field": "id"
   }
 }'
 
@@ -101,7 +108,7 @@ ELASTICSEARCH_PAYLOAD_AVRO='{
 }'
 
 # Tạo từng connector, tạo đầu source
-create_connector "cities-postgres-cdc" "$DEBEZIUM_PAYLOAD_JSON"
-# create_connector "elasticsearch-sink" "$ELASTICSEARCH_PAYLOAD_AVRO"
+create_connector "city-postgres-cdc" "$DEBEZIUM_PAYLOAD_JSON"
+create_connector "elasticsearch-sink" "$ELASTICSEARCH_PAYLOAD_JSON"
 
 echo "🎉 Tất cả connectors đã tạo thành công."
