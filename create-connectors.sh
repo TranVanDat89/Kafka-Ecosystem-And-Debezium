@@ -73,9 +73,11 @@ ELASTICSEARCH_PAYLOAD_JSON='{
     "key.ignore": "false",
     "schema.ignore": true,
 
+    "behavior.on.null.values": "delete",
     "transforms": "unwrap,extractKeyField",
     "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
     "transforms.unwrap.drop.tombstones": "false",
+    "transforms.unwrap.delete.handling.mode": "rewrite",
     "transforms.extractKeyField.type": "org.apache.kafka.connect.transforms.ExtractField$Key",
     "transforms.extractKeyField.field": "id"
   }
