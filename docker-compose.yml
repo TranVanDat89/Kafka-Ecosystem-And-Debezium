@@ -18,16 +18,25 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
-      - "29092:29092"  # Add this port mapping
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # Cấu hình mặc định cho topic mới
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      
+      # Cấu hình cho internal topics
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      
+      # Tự động tạo topic với replication factor cao
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_NUM_PARTITIONS: 3
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
       interval: 30s
@@ -38,38 +47,97 @@ services:
     networks:
       - city-net
 
-  # schema-registry:
-  #   image: confluentinc/cp-schema-registry:7.5.0
-  #   hostname: schema-registry
-  #   container_name: schema-registry
-  #   ports:
-  #     - "8081:8081"
-  #   environment:
-  #     SCHEMA_REGISTRY_HOST_NAME: schema-registry
-  #     SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka:9092"
-  #     SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
-  #   networks:
-  #     - city-net
-  #   depends_on:
-  #     - kafka
+  kafka-2:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-2
+    depends_on:
+      - zookeeper
+    ports:
+      - "9093:9092"
+      - "29093:29092"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092,PLAINTEXT_HOST://localhost:29093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # Cấu hình mặc định cho topic mới
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      
+      # Cấu hình cho internal topics
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      
+      # Tự động tạo topic với replication factor cao
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_NUM_PARTITIONS: 3
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - city-net
+
+  kafka-3:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-3
+    depends_on:
+      - zookeeper
+    ports:
+      - "9094:9092"  # Sửa từ 9093 thành 9094
+      - "29094:29092"
+    environment:
+      KAFKA_BROKER_ID: 3  # Sửa từ 2 thành 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9092,PLAINTEXT_HOST://localhost:29094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # Cấu hình mặc định cho topic mới
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      
+      # Cấu hình cho internal topics
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      
+      # Tự động tạo topic với replication factor cao
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_NUM_PARTITIONS: 3
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - city-net
 
   kafka-connect:
     image: confluentinc/cp-kafka-connect:7.5.0
     container_name: kafka-connect
     depends_on:
       - kafka
+      - kafka-2
+      - kafka-3  # Thêm dependency
       - elasticsearch
     ports:
       - 8083:8083
     environment:
-      - CONNECT_BOOTSTRAP_SERVERS=kafka:9092
+      - CONNECT_BOOTSTRAP_SERVERS=kafka:9092,kafka-2:9092,kafka-3:9092
       - CONNECT_GROUP_ID=confluent-connect-cluster
       - CONNECT_CONFIG_STORAGE_TOPIC=confluent-connect-configs
       - CONNECT_OFFSET_STORAGE_TOPIC=confluent-connect-offsets
       - CONNECT_STATUS_STORAGE_TOPIC=confluent-connect-statuses
-      - CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR=1
-      - CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR=1
-      - CONNECT_STATUS_STORAGE_REPLICATION_FACTOR=1
+      - CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR=3  # Tăng từ 1 lên 3
+      - CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR=3   # Tăng từ 1 lên 3
+      - CONNECT_STATUS_STORAGE_REPLICATION_FACTOR=3   # Tăng từ 1 lên 3
       - CONNECT_KEY_CONVERTER=org.apache.kafka.connect.json.JsonConverter
       - CONNECT_VALUE_CONVERTER=org.apache.kafka.connect.json.JsonConverter
       - CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE=false
@@ -150,18 +218,20 @@ services:
       - "8090:8080"
     environment:
       - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092,kafka-2:9092,kafka-3:9092
       - KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME=kafka-connect
       - KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS=http://kafka-connect:8083
     depends_on:
       - kafka
+      - kafka-2
+      - kafka-3
     restart: unless-stopped
     networks:
       - city-net
 
 networks:
   city-net:
-    driver: bridge  # Explicitly specify driver
+    driver: bridge
 
 volumes:
   kafka-data:
