@@ -18,6 +18,18 @@ CREATE TABLE cities (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE reviews (
+    review_id VARCHAR(50),
+    user_id VARCHAR(50),
+    business_id VARCHAR(50),
+    stars INTEGER,
+    useful INTEGER,
+    funny INTEGER,
+    cool INTEGER,
+    text TEXT,
+    date TIMESTAMP
+);
+
 -- Tạo function để tự động update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$

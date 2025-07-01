@@ -1,0 +1,41 @@
+version: '3.7'
+
+x-spark-common: &spark-common
+  image: bitnami/spark:latest
+  platform: linux/amd64
+  networks:
+    - spark-streaming-app
+
+services:
+  spark-master:
+    <<: *spark-common
+    container_name: spark-master
+    hostname: spark-master
+    command:
+      - bin/spark-class org.apache.spark.deploy.master.Master
+    ports:
+      - "9090:8080"
+      - "7077:7077"
+    networks:
+      - spark-streaming-app
+
+  spark-worker: &worker-node
+    <<: *spark-common
+    container_name: spark-worker
+    hostname: spark-worker
+    command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MODE: worker
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 1g
+      SPARK_MASTER_URL: spark://spark-master:7077
+    networks:
+      - spark-streaming-app
+
+#  spark-worker-2:
+#    <<: *worker-node
+
+networks:
+  spark-streaming-app:
