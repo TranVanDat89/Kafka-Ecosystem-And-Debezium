@@ -41,3 +41,11 @@ kafka:
     # Error handling topics
     cities-dlq: cities-dead-letter-queue
     cities-retry: cities-retry-topic
+
+aws:
+  s3:
+    bucket: job-finder-bucket
+    region: ap-southeast-2
+  credentials:
+    access-key:
+    secret-key:

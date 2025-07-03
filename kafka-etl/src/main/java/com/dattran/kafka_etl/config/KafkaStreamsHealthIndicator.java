@@ -6,7 +6,7 @@ import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.kafka.config.StreamsBuilderFactoryBean;
 import org.springframework.stereotype.Component;
 
-@Component
+//@Component
 public class KafkaStreamsHealthIndicator implements HealthIndicator {
     private final StreamsBuilderFactoryBean streamsBuilderFactoryBean;
 

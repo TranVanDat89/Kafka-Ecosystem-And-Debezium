@@ -8,7 +8,7 @@ import org.springframework.kafka.config.StreamsBuilderFactoryBeanConfigurer;
 import org.springframework.stereotype.Component;
 
 @Slf4j
-@Component
+//@Component
 public class KafkaStreamsStateListener implements StreamsBuilderFactoryBeanConfigurer {
 
     @Override

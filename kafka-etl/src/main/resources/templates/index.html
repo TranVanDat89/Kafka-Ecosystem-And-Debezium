@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S3 Multipart Upload Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .upload-section {
+            padding: 40px;
+        }
+
+        .file-input-container {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 30px;
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .file-input-label:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+            transform: translateY(-2px);
+        }
+
+        .file-input-label.dragover {
+            border-color: #667eea;
+            background: #e3f2fd;
+            transform: scale(1.02);
+        }
+
+        .file-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .file-input-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .file-size-limit {
+            font-size: 0.9rem;
+            color: #999;
+        }
+
+        .selected-file {
+            background: #e8f5e8;
+            border: 2px solid #4caf50;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .file-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .file-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .file-size {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .upload-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .progress-container {
+            background: #f1f3f4;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .progress-container.show {
+            display: block;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .progress-status {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .progress-percentage {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 6px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .log-container {
+            background: #1e1e1e;
+            color: #00ff00;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .log-container.show {
+            display: block;
+        }
+
+        .log-line {
+            margin-bottom: 5px;
+            opacity: 0;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .reset-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .reset-btn:hover {
+            background: #5a6268;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🚀 S3 Multipart Upload</h1>
+        <p>Test your large file uploads with style</p>
+    </div>
+
+    <div class="upload-section">
+        <div class="file-input-container">
+            <input type="file" id="fileInput" class="file-input" />
+            <label for="fileInput" class="file-input-label" id="fileLabel">
+                <div class="file-icon">📁</div>
+                <div class="file-input-text">Click to select file or drag & drop</div>
+                <div class="file-size-limit">Maximum file size: 10GB</div>
+            </label>
+        </div>
+
+        <div id="selectedFile" class="selected-file" style="display: none;">
+            <div class="file-info">
+                <span class="file-name" id="fileName"></span>
+                <span class="file-size" id="fileSize"></span>
+            </div>
+            <button class="upload-btn" id="uploadBtn">
+                🚀 Start Upload
+            </button>
+        </div>
+
+        <div id="progressContainer" class="progress-container">
+            <div class="progress-header">
+                <span class="progress-status" id="progressStatus">Uploading...</span>
+                <span class="progress-percentage" id="progressPercentage">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-details">
+                <div>Parts Completed: <span id="partsCompleted">0</span>/<span id="totalParts">0</span></div>
+                <div>Upload Speed: <span id="uploadSpeed">0 MB/s</span></div>
+                <div>Time Elapsed: <span id="timeElapsed">00:00</span></div>
+                <div>Time Remaining: <span id="timeRemaining">--:--</span></div>
+            </div>
+        </div>
+
+        <div id="logContainer" class="log-container">
+            <div id="logContent"></div>
+        </div>
+
+        <div id="successMessage" class="success-message">
+            <h3>🎉 Upload Completed Successfully!</h3>
+            <p>Your file has been uploaded to S3.</p>
+            <button class="reset-btn" onclick="resetUpload()">Upload Another File</button>
+        </div>
+
+        <div id="errorMessage" class="error-message">
+            <h3>❌ Upload Failed</h3>
+            <p id="errorText"></p>
+            <button class="reset-btn" onclick="resetUpload()">Try Again</button>
+        </div>
+
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="totalSize">0</div>
+                <div class="stat-label">Total Size (MB)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgSpeed">0</div>
+                <div class="stat-label">Avg Speed (MB/s)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalTime">0</div>
+                <div class="stat-label">Total Time (s)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="partsCount">0</div>
+                <div class="stat-label">Parts Uploaded</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://localhost:8080/api/s3';
+    const CHUNK_SIZE = 100 * 1024 * 1024; // 100MB
+
+    let selectedFile = null;
+    let uploadStartTime = null;
+    let uploadInterval = null;
+    let uploadStats = {
+        completedParts: 0,
+        totalParts: 0,
+        uploadedBytes: 0,
+        startTime: null
+    };
+
+    // File input handling
+    const fileInput = document.getElementById('fileInput');
+    const fileLabel = document.getElementById('fileLabel');
+    const selectedFileDiv = document.getElementById('selectedFile');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const uploadBtn = document.getElementById('uploadBtn');
+
+    // Progress elements
+    const progressContainer = document.getElementById('progressContainer');
+    const progressStatus = document.getElementById('progressStatus');
+    const progressPercentage = document.getElementById('progressPercentage');
+    const progressFill = document.getElementById('progressFill');
+    const partsCompleted = document.getElementById('partsCompleted');
+    const totalParts = document.getElementById('totalParts');
+    const uploadSpeed = document.getElementById('uploadSpeed');
+    const timeElapsed = document.getElementById('timeElapsed');
+    const timeRemaining = document.getElementById('timeRemaining');
+
+    // Message elements
+    const logContainer = document.getElementById('logContainer');
+    const logContent = document.getElementById('logContent');
+    const successMessage = document.getElementById('successMessage');
+    const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    const stats = document.getElementById('stats');
+
+    // Drag & Drop functionality
+    fileLabel.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileLabel.classList.add('dragover');
+    });
+
+    fileLabel.addEventListener('dragleave', () => {
+        fileLabel.classList.remove('dragover');
+    });
+
+    fileLabel.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileLabel.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileSelect(files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    uploadBtn.addEventListener('click', startUpload);
+
+    function handleFileSelect(file) {
+        selectedFile = file;
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        selectedFileDiv.style.display = 'block';
+
+        // Calculate total parts
+        const totalPartsCount = Math.ceil(file.size / CHUNK_SIZE);
+        uploadStats.totalParts = totalPartsCount;
+
+        logMessage(`File selected: ${file.name} (${formatFileSize(file.size)}, ${totalPartsCount} parts)`);
+    }
+
+    async function startUpload() {
+        if (!selectedFile) return;
+
+        try {
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = '⏳ Uploading...';
+            progressContainer.classList.add('show');
+            logContainer.classList.add('show');
+
+            uploadStats.startTime = Date.now();
+            uploadStats.completedParts = 0;
+            uploadStats.uploadedBytes = 0;
+
+            logMessage('🚀 Starting multipart upload...');
+
+            // 1. Initialize multipart upload
+            const initResponse = await initializeUpload();
+            logMessage(`✅ Upload initialized. Upload ID: ${initResponse.uploadId}`);
+            logMessage(`📦 Total parts to upload: ${initResponse.totalParts}`);
+
+            totalParts.textContent = initResponse.totalParts;
+
+            // Start progress timer
+            startProgressTimer();
+
+            // 2. Upload parts
+            const completedParts = await uploadParts(initResponse);
+            logMessage(`✅ All parts uploaded successfully`);
+
+            // 3. Complete upload
+            await completeUpload(initResponse.key, initResponse.uploadId, completedParts);
+            logMessage(`🎉 Upload completed successfully!`);
+
+            showSuccess();
+
+        } catch (error) {
+            console.error('Upload failed:', error);
+            logMessage(`❌ Upload failed: ${error.message}`);
+            showError(error.message);
+        } finally {
+            stopProgressTimer();
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = '🚀 Start Upload';
+        }
+    }
+
+    async function initializeUpload() {
+        const response = await fetch(`${API_BASE_URL}/init-multipart`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                fileName: selectedFile.name,
+                fileSize: selectedFile.size
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to initialize upload: ${response.statusText}`);
+        }
+
+        return await response.json();
+    }
+
+    async function uploadParts(uploadInfo) {
+        const completedParts = [];
+        const concurrentUploads = 3; // Upload 3 parts at a time
+
+        for (let i = 0; i < uploadInfo.presignedUrls.length; i += concurrentUploads) {
+            const batch = uploadInfo.presignedUrls.slice(i, i + concurrentUploads);
+
+            const batchPromises = batch.map(urlInfo => uploadSinglePart(urlInfo));
+            const batchResults = await Promise.all(batchPromises);
+
+            completedParts.push(...batchResults);
+
+            // Update progress
+            uploadStats.completedParts = completedParts.length;
+            updateProgress();
+        }
+
+        return completedParts.sort((a, b) => a.partNumber - b.partNumber);
+    }
+
+    async function uploadSinglePart(urlInfo) {
+        const start = (urlInfo.partNumber - 1) * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, selectedFile.size);
+        const chunk = selectedFile.slice(start, end);
+
+        logMessage(`📤 Uploading part ${urlInfo.partNumber}/${uploadStats.totalParts} (${formatFileSize(chunk.size)})`);
+
+        const response = await fetch(urlInfo.url, {
+            method: 'PUT',
+            body: chunk,
+            headers: {
+                'Content-Type': 'application/octet-stream'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to upload part ${urlInfo.partNumber}: ${response.statusText}`);
+        }
+
+        // IMPROVED ETag extraction with better error handling
+        let eTag = response.headers.get('ETag');
+
+        // Enhanced debugging
+        console.log(`Part ${urlInfo.partNumber} response:`, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries()),
+            eTag: eTag
+        });
+
+        // Comprehensive ETag validation
+        if (eTag === null || eTag === undefined) {
+            // Try alternative header names
+            eTag = response.headers.get('etag') || response.headers.get('ETAG');
+            if (!eTag) {
+                throw new Error(`ETag header missing for part ${urlInfo.partNumber}. Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
+            }
+        }
+
+        if (typeof eTag !== 'string' || eTag.trim() === '') {
+            throw new Error(`ETag is empty or invalid type for part ${urlInfo.partNumber}: ${typeof eTag} - "${eTag}"`);
+        }
+
+        // Clean ETag (remove quotes for processing, will add back in Java)
+        eTag = eTag.trim().replace(/^"|"$/g, '');
+
+        if (!eTag || eTag.length === 0) {
+            throw new Error(`ETag is still empty after processing for part ${urlInfo.partNumber}`);
+        }
+
+        // Validate ETag format (basic check)
+        if (!/^[a-fA-F0-9]{32}(-\d+)?$/.test(eTag)) {
+            console.warn(`ETag format unusual for part ${urlInfo.partNumber}: ${eTag}`);
+        }
+
+        uploadStats.uploadedBytes += chunk.size;
+        logMessage(`✅ Part ${urlInfo.partNumber} uploaded successfully (ETag: ${eTag})`);
+
+        return {
+            partNumber: urlInfo.partNumber,
+            eTag: eTag  // Send without quotes, Java will handle formatting
+        };
+    }
+
+    async function completeUpload(key, uploadId, parts) {
+        // Log the parts being sent for debugging
+        logMessage(`📋 Completing upload with ${parts.length} parts`);
+        parts.forEach(part => {
+            logMessage(`  Part ${part.partNumber}: ETag=${part.eTag}`);
+        });
+
+        const response = await fetch(`${API_BASE_URL}/complete-multipart`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                key: key,
+                uploadId: uploadId,
+                parts: parts
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to complete upload: ${response.statusText} - ${errorText}`);
+        }
+    }
+
+    function startProgressTimer() {
+        uploadInterval = setInterval(updateProgress, 1000);
+    }
+
+    function stopProgressTimer() {
+        if (uploadInterval) {
+            clearInterval(uploadInterval);
+            uploadInterval = null;
+        }
+    }
+
+    function updateProgress() {
+        if (!uploadStats.startTime) return;
+
+        const now = Date.now();
+        const elapsed = (now - uploadStats.startTime) / 1000;
+        const progress = (uploadStats.completedParts / uploadStats.totalParts) * 100;
+        const speed = uploadStats.uploadedBytes / elapsed / (1024 * 1024); // MB/s
+
+        // Update progress bar
+        progressFill.style.width = `${progress}%`;
+        progressPercentage.textContent = `${Math.round(progress)}%`;
+
+        // Update counters
+        partsCompleted.textContent = uploadStats.completedParts;
+        uploadSpeed.textContent = `${speed.toFixed(2)} MB/s`;
+        timeElapsed.textContent = formatTime(elapsed);
+
+        // Calculate remaining time
+        if (progress > 0) {
+            const remainingTime = (elapsed / progress) * (100 - progress);
+            timeRemaining.textContent = formatTime(remainingTime);
+        }
+    }
+
+    function showSuccess() {
+        progressContainer.classList.remove('show');
+        successMessage.classList.add('show');
+
+        // Show stats
+        const elapsed = (Date.now() - uploadStats.startTime) / 1000;
+        const avgSpeed = (selectedFile.size / elapsed) / (1024 * 1024);
+
+        document.getElementById('totalSize').textContent = Math.round(selectedFile.size / (1024 * 1024));
+        document.getElementById('avgSpeed').textContent = avgSpeed.toFixed(2);
+        document.getElementById('totalTime').textContent = Math.round(elapsed);
+        document.getElementById('partsCount').textContent = uploadStats.totalParts;
+
+        stats.style.display = 'block';
+    }
+
+    function showError(message) {
+        progressContainer.classList.remove('show');
+        errorText.textContent = message;
+        errorMessage.classList.add('show');
+    }
+
+    function resetUpload() {
+        selectedFile = null;
+        selectedFileDiv.style.display = 'none';
+        progressContainer.classList.remove('show');
+        logContainer.classList.remove('show');
+        successMessage.classList.remove('show');
+        errorMessage.classList.remove('show');
+        stats.style.display = 'none';
+
+        logContent.innerHTML = '';
+        fileInput.value = '';
+
+        uploadStats = {
+            completedParts: 0,
+            totalParts: 0,
+            uploadedBytes: 0,
+            startTime: null
+        };
+    }
+
+    function logMessage(message) {
+        const timestamp = new Date().toLocaleTimeString();
+        const logLine = document.createElement('div');
+        logLine.className = 'log-line';
+        logLine.textContent = `[${timestamp}] ${message}`;
+        logContent.appendChild(logLine);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Initialize
+    logMessage('🎯 S3 Upload Test initialized. Ready to upload files!');
+</script>
+</body>
+</html>
